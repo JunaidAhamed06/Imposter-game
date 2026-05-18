@@ -124,6 +124,23 @@ function tallyCategoryVotes(room) {
   return { votes, chosen: room.category };
 }
 
+function shuffleTurnOrder(room) {
+  const active = room.players.filter(p => !p.eliminated);
+  const shuffled = [...active];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  const imposterIdx = shuffled.findIndex(p => p.id === room.imposterSocketId);
+  if (imposterIdx === 0 && shuffled.length > 1) {
+    const swapIdx = Math.floor(Math.random() * (shuffled.length - 1)) + 1;
+    [shuffled[0], shuffled[swapIdx]] = [shuffled[swapIdx], shuffled[0]];
+  }
+
+  room.turnOrder = shuffled.map(p => p.id);
+}
+
 function broadcastToRoom(room, event, data) {
   room.players.forEach(p => {
     io.to(p.id).emit(event, data);
@@ -231,7 +248,13 @@ io.on('connection', (socket) => {
     const active = room.players.filter(p => !p.eliminated);
     room.clueTurn = room.clueTurn || 0;
 
-    if (room.clueTurn >= active.length) {
+    while (room.clueTurn < (room.turnOrder || []).length) {
+      const pid = room.turnOrder[room.clueTurn];
+      if (room.players.find(p => p.id === pid && !p.eliminated)) break;
+      room.clueTurn++;
+    }
+
+    if (room.clueTurn >= (room.turnOrder || []).length) {
       clearTimeout(turnTimer);
       room.phase = 'vote';
       room.readyToVote = {};
@@ -243,7 +266,8 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const currentPlayer = active[room.clueTurn];
+    const currentPlayerId = room.turnOrder[room.clueTurn];
+    const currentPlayer = room.players.find(p => p.id === currentPlayerId);
     room.currentTurnPlayerId = currentPlayer.id;
 
     broadcastToRoom(room, 'turnChange', {
@@ -297,6 +321,7 @@ io.on('connection', (socket) => {
         room.clues = [];
         room.currentTurnPlayerId = null;
         room.players.forEach(p => { p.clue = null; });
+        shuffleTurnOrder(room);
         startTurn(room);
       }, 2500);
     }
