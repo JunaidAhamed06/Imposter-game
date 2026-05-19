@@ -360,11 +360,12 @@ canvas#particles {
 }
 
 .error-msg {
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1.5px solid #ef4444;
+  color: #ff6b6b;
   padding: 10px 14px; border-radius: 14px;
-  font-size: 0.8rem; margin-top: 12px; text-align: center;
+  font-size: 0.85rem; text-align: center;
+  font-weight: 600;
   animation: slideUp 0.3s ease-out;
 }
 
@@ -733,6 +734,7 @@ canvas#particles {
         <div class="logo-text">Imposter</div>
         <div class="logo-sub">Find the Spy</div>
       </div>
+      <div id="connectError" style="margin-bottom:12px;"></div>
       <div class="input" style="font-weight:600;margin-bottom:12px;font-size:0.85rem;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.5);">Your Name</div>
       <input type="text" class="input" id="nameInput" placeholder="Enter your name" maxlength="20" style="margin-bottom:4px;">
       <div class="divider">join existing room</div>
@@ -741,7 +743,6 @@ canvas#particles {
         <button class="btn btn-accent" id="createRoomBtn">&#x1F3D6;&#xFE0F; Create Room</button>
         <button class="btn btn-primary" id="joinRoomBtn">Join Room</button>
       </div>
-      <div id="connectError"></div>
     </div>
   </div>
 
