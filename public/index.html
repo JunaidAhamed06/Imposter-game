@@ -480,6 +480,46 @@ canvas#particles {
   border: 1px solid rgba(255, 179, 71, 0.2);
 }
 
+.kick-btn {
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255, 71, 87, 0.12);
+  color: rgba(255,255,255,0.9);
+  font-weight: 800;
+  padding: 6px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.kick-btn:hover { background: rgba(255, 71, 87, 0.18); transform: translateY(-1px); }
+.kick-btn:active { transform: scale(0.98); }
+
+.host-setting-label {
+  text-align:center;
+  font-size:0.7rem;
+  color:rgba(255,255,255,0.35);
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  font-weight:600;
+  margin: 12px 0 10px;
+}
+.range-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.range {
+  width: 100%;
+  accent-color: var(--sunset-orange);
+}
+.range-value {
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+
 .room-code-display {
   text-align: center; padding: 20px;
   background: linear-gradient(135deg, rgba(255, 140, 66, 0.12), rgba(255, 107, 138, 0.08));
@@ -570,9 +610,21 @@ canvas#particles {
 }
 .vote-option:active { transform: scale(0.98); }
 .vote-option.selected {
-  background: linear-gradient(135deg, rgba(255, 140, 66, 0.15), rgba(255, 107, 138, 0.1));
-  border-color: rgba(255, 140, 66, 0.3);
-  box-shadow: 0 0 20px rgba(255, 140, 66, 0.1);
+  background: linear-gradient(135deg, rgba(255, 71, 87, 0.22), rgba(255, 107, 138, 0.12));
+  border-color: rgba(255, 71, 87, 0.35);
+  box-shadow: 0 0 22px rgba(255, 71, 87, 0.14);
+  transform: translateY(-1px);
+}
+.vote-option.skip-option {
+  border-color: rgba(255, 179, 71, 0.28);
+  background: linear-gradient(135deg, rgba(255, 179, 71, 0.10), rgba(255, 140, 66, 0.06));
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.vote-option.skip-option:hover {
+  border-color: rgba(255, 179, 71, 0.40);
+  background: linear-gradient(135deg, rgba(255, 179, 71, 0.14), rgba(255, 140, 66, 0.08));
 }
 
 .result-eliminated { text-align: center; padding: 30px 0; }
@@ -741,6 +793,100 @@ canvas#particles {
 .live-clue-name { font-size: 0.7rem; font-weight: 700; color: rgba(255,255,255,0.45); margin-bottom: 4px; }
 .live-clue-text { font-size: 0.85rem; color: rgba(255,255,255,0.85); font-style: italic; line-height: 1.4; }
 
+.discussion-header { text-align: center; margin-bottom: 14px; }
+.discussion-title { font-size: 1.1rem; font-weight: 900; letter-spacing: -0.5px; }
+.discussion-sub { font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-top: 4px; }
+.discussion-countdown {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 100px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: rgba(255,255,255,0.85);
+}
+.discussion-status { margin-top: 12px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.discussion-voted {
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: rgba(255,255,255,0.55);
+}
+.discussion-voted strong { color: rgba(255,255,255,0.9); }
+.voter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.voter-pill {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.75);
+}
+.voter-pill.voted {
+  border-color: rgba(74, 222, 128, 0.35);
+  background: rgba(74, 222, 128, 0.12);
+  color: rgba(255,255,255,0.95);
+}
+.discussion-vote-wrap {
+  padding: 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+}
+.discussion-vote-title {
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.35);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 10px;
+}
+.discussion-wrap { display: flex; flex-direction: column; gap: 14px; }
+.discussion-clues {
+  padding: 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  max-height: 210px;
+  overflow: auto;
+}
+.chat-box {
+  padding: 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+}
+.chat-messages {
+  max-height: 190px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 6px;
+}
+.chat-msg {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.chat-msg .chat-meta { font-size: 0.7rem; font-weight: 900; color: rgba(255,255,255,0.55); margin-bottom: 4px; display:flex; justify-content: space-between; gap: 10px; }
+.chat-msg .chat-time { font-size: 0.65rem; font-weight: 800; color: rgba(255,255,255,0.35); white-space: nowrap; }
+.chat-msg .chat-text { font-size: 0.85rem; color: rgba(255,255,255,0.9); line-height: 1.35; }
+.chat-input-row { display: flex; gap: 10px; margin-top: 10px; }
+.chat-input-row .input { flex: 1; margin-bottom: 0; }
+.chat-note { margin-top: 10px; text-align: center; font-size: 0.75rem; color: rgba(255,255,255,0.35); font-weight: 700; }
+
 @media (max-width: 480px) {
   .container { padding: 12px; padding-bottom: 60px; }
   .card { padding: 24px 20px; border-radius: var(--radius-lg); }
@@ -836,11 +982,16 @@ canvas#particles {
         <button class="btn btn-primary" id="copyInviteBtn">&#x1F517; Copy Invite Link</button>
       </div>
       <div id="hostControls" style="display:none;">
-        <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.35);letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-bottom:12px;">Player Limit</div>
+        <div class="host-setting-label">Player Limit</div>
         <div class="pc-controls">
           <button class="pc-btn" id="pcDec">&#x2212;</button>
           <div class="pc-value" id="pcValue">5</div>
           <button class="pc-btn" id="pcInc">+</button>
+        </div>
+        <div class="host-setting-label">Discussion Time</div>
+        <div class="range-wrap">
+          <input type="range" class="range" id="discussionRange" min="30" max="200" step="1" value="60">
+          <div class="range-value" id="discussionValue">60s</div>
         </div>
       </div>
       <div id="lobbyPlayers" class="lobby-players"></div>
@@ -912,6 +1063,35 @@ canvas#particles {
     </div>
   </div>
 
+  <div class="screen" id="discussionScreen">
+    <div class="card">
+      <div class="discussion-header">
+        <div class="discussion-title">Discussion</div>
+        <div class="discussion-sub">Talk it out before voting</div>
+        <div class="discussion-countdown" id="discussionCountdown">&#x1F4AC; 60s</div>
+        <div class="discussion-status">
+          <div class="discussion-voted" id="discussionVotedText" style="display:none;">Voted: <strong>0/0</strong></div>
+          <div class="voter-pills" id="voterPills"></div>
+        </div>
+      </div>
+      <div class="discussion-wrap">
+        <div class="discussion-clues" id="discussionClues"></div>
+        <div class="discussion-vote-wrap">
+          <div class="discussion-vote-title">Vote during discussion</div>
+          <div class="vote-options" id="discussionVoteOptions"></div>
+        </div>
+        <div class="chat-box">
+          <div class="chat-messages" id="chatMessages"></div>
+          <div class="chat-input-row">
+            <input type="text" class="input" id="chatInput" placeholder="Type a message..." maxlength="200" autocomplete="off">
+            <button class="btn btn-primary" id="chatSendBtn">Send</button>
+          </div>
+          <div class="chat-note" id="chatNote" style="display:none;">Spectating — chat disabled</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="screen" id="voteScreen">
     <div class="card">
       <div class="vote-title">Vote the Imposter</div>
@@ -976,6 +1156,7 @@ const socket = io();
 let myName = '';
 let isHost = false;
 let playerCount = 5;
+let discussionSeconds = 60;
 window._myIsSpectator = false;
 
 const invitePathMatch = window.location.pathname.match(/^\/room\/([A-Za-z0-9]+)\/?$/);
@@ -1114,6 +1295,16 @@ updateConnectButtons();
 document.getElementById('pcDec').addEventListener('click', () => { playerCount = Math.max(3, playerCount - 1); socket.emit('updatePlayerCount', { playerCount }); });
 document.getElementById('pcInc').addEventListener('click', () => { playerCount = Math.min(10, playerCount + 1); socket.emit('updatePlayerCount', { playerCount }); });
 
+document.getElementById('discussionRange').addEventListener('input', (e) => {
+  const v = parseInt(e.target.value, 10);
+  document.getElementById('discussionValue').textContent = `${v}s`;
+});
+document.getElementById('discussionRange').addEventListener('change', (e) => {
+  if (!isHost) return;
+  const v = parseInt(e.target.value, 10);
+  socket.emit('updateDiscussionTime', { seconds: v });
+});
+
 document.getElementById('revealToggle').addEventListener('click', () => {
   const toggle = document.getElementById('revealToggle');
   if (toggle.classList.contains('hidden')) {
@@ -1144,6 +1335,15 @@ socket.on('roomCreated', ({ code, roomState }) => { isHost = true; playerCount =
 socket.on('roomJoined', ({ code, roomState }) => { isHost = false; setUrlForRoom(roomState.code); enterLobby(roomState); });
 socket.on('joinError', msg => showError(msg));
 socket.on('roomUpdate', roomState => { playerCount = roomState.playerCount; updateLobby(roomState); });
+
+socket.on('kicked', ({ reason }) => {
+  try { window.history.replaceState({}, '', '/'); } catch (e) {}
+  document.getElementById('statusPill').style.display = 'none';
+  document.getElementById('roundBadge').style.display = 'none';
+  hideWordBadge();
+  showScreen('connectScreen');
+  showError(reason || 'You were removed from the room');
+});
 
 socket.on('startCategoryVote', data => {
   document.getElementById('phaseLabel').textContent = `Round ${data.round}`;
@@ -1188,6 +1388,9 @@ socket.on('revealComplete', () => {
 
 let turnTimer = null;
 let timerInterval = null;
+let discussionInterval = null;
+let _lastActivePlayers = [];
+let _mySelectedVoteTarget = null;
 
 socket.on('turnChange', data => {
   document.getElementById('phaseLabel').textContent = 'Clue Phase';
@@ -1249,6 +1452,187 @@ socket.on('turnChange', data => {
   };
 });
 
+function renderDiscussionClues(allClues) {
+  const container = document.getElementById('discussionClues');
+  container.innerHTML = '';
+  const label = document.createElement('div');
+  label.className = 'live-clues-label';
+  label.style.textAlign = 'center';
+  label.textContent = `All ${allClues.length} Clues Revealed`;
+  container.appendChild(label);
+  allClues.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'live-clue-item';
+    el.style.marginBottom = '8px';
+    el.innerHTML = `<div class="live-clue-name">${c.name}</div><div class="live-clue-text">"${c.clue}"</div>`;
+    container.appendChild(el);
+  });
+}
+
+function renderVoterPills(activePlayers, votedIds) {
+  const pills = document.getElementById('voterPills');
+  const votedText = document.getElementById('discussionVotedText');
+  if (!pills || !votedText) return;
+
+  const voted = new Set(votedIds || []);
+  const total = (activePlayers || []).length;
+  const count = (activePlayers || []).filter(p => voted.has(p.id)).length;
+
+  votedText.style.display = 'block';
+  votedText.innerHTML = `Voted: <strong>${count}/${total}</strong>`;
+
+  pills.innerHTML = '';
+  (activePlayers || []).forEach(p => {
+    const el = document.createElement('div');
+    el.className = `voter-pill${voted.has(p.id) ? ' voted' : ''}`;
+    el.textContent = p.name;
+    pills.appendChild(el);
+  });
+}
+
+function renderDiscussionVoteOptions(activePlayers) {
+  const container = document.getElementById('discussionVoteOptions');
+  if (!container) return;
+  container.innerHTML = '';
+  container.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
+
+  if (window._myIsSpectator) {
+    const msg = document.createElement('div');
+    msg.style.cssText = 'padding:12px;text-align:center;color:rgba(255,255,255,0.6);font-weight:800;';
+    msg.textContent = 'Spectating — you cannot vote';
+    container.appendChild(msg);
+    return;
+  }
+
+  // Skip option
+  const skipBtn = document.createElement('button');
+  skipBtn.className = 'vote-option skip-option';
+  skipBtn.textContent = 'Skip';
+  skipBtn.onclick = () => {
+    _mySelectedVoteTarget = 'skip';
+    container.querySelectorAll('.vote-option').forEach(b => b.classList.remove('selected'));
+    skipBtn.classList.add('selected');
+    socket.emit('submitVote', { targetId: 'skip' });
+  };
+  container.appendChild(skipBtn);
+
+  (activePlayers || []).filter(p => p.id !== socket.id).forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'vote-option';
+    btn.textContent = p.name;
+    btn.onclick = () => {
+      _mySelectedVoteTarget = p.id;
+      container.querySelectorAll('.vote-option').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected'); // red highlight only for this client
+      socket.emit('submitVote', { targetId: p.id });
+    };
+    container.appendChild(btn);
+  });
+
+  // Restore selection if I already voted earlier
+  if (_mySelectedVoteTarget) {
+    const buttons = Array.from(container.querySelectorAll('.vote-option'));
+    buttons.forEach(b => {
+      const isSkip = b.classList.contains('skip-option') && _mySelectedVoteTarget === 'skip';
+      const isPlayer = !b.classList.contains('skip-option') && activePlayers.find(p => p.id === _mySelectedVoteTarget)?.name === b.textContent;
+      if (isSkip || isPlayer) b.classList.add('selected');
+    });
+  }
+}
+
+function addChatMessage(msg) {
+  const list = document.getElementById('chatMessages');
+  const el = document.createElement('div');
+  el.className = 'chat-msg';
+  const dt = msg && msg.ts ? new Date(msg.ts) : new Date();
+  const time = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  el.innerHTML = `
+    <div class="chat-meta">
+      <span class="chat-who">${escapeHtml(msg.name)}</span>
+      <span class="chat-time">${escapeHtml(time)}</span>
+    </div>
+    <div class="chat-text">${escapeHtml(msg.text)}</div>
+  `;
+  list.appendChild(el);
+  list.scrollTop = list.scrollHeight;
+}
+
+function escapeHtml(s) {
+  return (s || '').toString()
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function setupChatInput() {
+  const input = document.getElementById('chatInput');
+  const btn = document.getElementById('chatSendBtn');
+  const note = document.getElementById('chatNote');
+
+  const disabled = !!window._myIsSpectator;
+  input.disabled = disabled;
+  btn.disabled = disabled;
+  note.style.display = disabled ? 'block' : 'none';
+
+  btn.onclick = () => {
+    if (disabled) return;
+    const text = input.value.trim();
+    if (!text) return;
+    socket.emit('sendChat', { text });
+    input.value = '';
+    input.focus();
+  };
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') btn.click();
+  };
+}
+
+socket.on('discussionStart', data => {
+  clearInterval(timerInterval);
+  clearInterval(discussionInterval);
+  hideWordBadge();
+  document.getElementById('phaseLabel').textContent = 'Discussion';
+  showScreen('discussionScreen');
+
+  const allClues = data.allClues || [];
+  renderDiscussionClues(allClues);
+  document.getElementById('chatMessages').innerHTML = '';
+  setupChatInput();
+
+  _lastActivePlayers = data.activePlayers || [];
+  renderVoterPills(_lastActivePlayers, []);
+  renderDiscussionVoteOptions(_lastActivePlayers);
+
+  const endsAt = data.endsAt || (Date.now() + (data.seconds || 60) * 1000);
+  function updateCountdown() {
+    const remainingMs = Math.max(0, endsAt - Date.now());
+    const remaining = Math.ceil(remainingMs / 1000);
+    document.getElementById('discussionCountdown').textContent = `\uD83D\uDCAC ${remaining}s`;
+    if (remaining <= 0) clearInterval(discussionInterval);
+  }
+  updateCountdown();
+  discussionInterval = setInterval(updateCountdown, 500);
+});
+
+socket.on('chatMessage', payload => {
+  // Only relevant during discussion, but safe to append regardless.
+  addChatMessage(payload);
+});
+
+socket.on('voteStatus', data => {
+  // Used to show which players have voted (green) during discussion.
+  const votedIds = (data && Array.isArray(data.votedIds)) ? data.votedIds : [];
+  const total = data && Number.isFinite(+data.total) ? +data.total : (_lastActivePlayers || []).length;
+  if ((_lastActivePlayers || []).length === 0 && total > 0) {
+    // If we didn't receive the active list yet, keep old behavior.
+    renderVoterPills([], votedIds);
+    return;
+  }
+  renderVoterPills(_lastActivePlayers, votedIds);
+});
+
 function addLiveClue(name, clue, isSelf, container) {
   const el = document.createElement('div');
   el.className = `live-clue-item${isSelf ? ' self' : ''}`;
@@ -1288,12 +1672,14 @@ function startTimer(seconds) {
 }
 
 socket.on('phaseChange', data => {
+  clearInterval(discussionInterval);
   switch (data.phase) {
     case 'vote':
       clearInterval(timerInterval);
       hideWordBadge();
       document.getElementById('phaseLabel').textContent = 'Voting';
       showScreen('voteScreen');
+      _lastActivePlayers = data.activePlayers || [];
       renderVoteOptions(data.activePlayers, data.allClues);
       break;
   }
@@ -1303,12 +1689,29 @@ socket.on('voteResult', data => {
   hideWordBadge();
   document.getElementById('phaseLabel').textContent = 'Result';
   showScreen('resultScreen');
-  document.getElementById('resultIcon').textContent = data.isImposter ? '\uD83C\uDFAF' : '\uD83D\uDEAA';
-  document.getElementById('resultPlayerName').textContent = data.eliminatedName;
-  document.getElementById('resultSub').textContent = data.isImposter ? 'was the IMPOSTER!' : 'has been eliminated';
   const roleEl = document.getElementById('resultRole');
-  roleEl.textContent = data.isImposter ? 'IMPOSTER' : 'CREW MEMBER';
-  roleEl.className = `result-role ${data.isImposter ? 'imposter' : 'crew'}`;
+
+  if (data.tie) {
+    document.getElementById('resultIcon').textContent = '\uD83E\uDD1D';
+    document.getElementById('resultPlayerName').textContent = 'Tie';
+    document.getElementById('resultSub').textContent = 'Vote resulted in a tie';
+    roleEl.textContent = 'NO ONE ELIMINATED';
+    roleEl.className = 'result-role crew';
+    if (data.autoNextRound) showToast('Tie — next round starting...');
+  } else if (data.skipMajority) {
+    document.getElementById('resultIcon').textContent = '\u23ED\uFE0F';
+    document.getElementById('resultPlayerName').textContent = 'Skip';
+    document.getElementById('resultSub').textContent = 'Majority chose skip — no one eliminated';
+    roleEl.textContent = 'NO ONE ELIMINATED';
+    roleEl.className = 'result-role crew';
+    if (data.autoNextRound) showToast('Skipped — next round starting...');
+  } else {
+    document.getElementById('resultIcon').textContent = data.isImposter ? '\uD83C\uDFAF' : '\uD83D\uDEAA';
+    document.getElementById('resultPlayerName').textContent = data.eliminatedName || '—';
+    document.getElementById('resultSub').textContent = data.isImposter ? 'was the IMPOSTER!' : 'has been eliminated';
+    roleEl.textContent = data.isImposter ? 'IMPOSTER' : 'CREW MEMBER';
+    roleEl.className = `result-role ${data.isImposter ? 'imposter' : 'crew'}`;
+  }
 
   // If *I* was voted out (and I'm not the imposter), I become a spectator from now on.
   if (!data.isImposter && data.eliminatedId && data.eliminatedId === socket.id) {
@@ -1372,10 +1775,15 @@ socket.on('voteResult', data => {
     document.getElementById('nextRoundBtn').style.display = 'none';
     document.getElementById('viewResultsBtn').style.display = 'none';
   } else {
-    document.getElementById('nextRoundBtn').style.display = 'block';
-    document.getElementById('viewResultsBtn').style.display = 'none';
-    document.getElementById('nextRoundBtn').innerHTML = 'Next Round \u2192';
-    document.getElementById('nextRoundBtn').onclick = () => tryNextRound();
+    if (data.autoNextRound) {
+      document.getElementById('nextRoundBtn').style.display = 'none';
+      document.getElementById('viewResultsBtn').style.display = 'none';
+    } else {
+      document.getElementById('nextRoundBtn').style.display = 'block';
+      document.getElementById('viewResultsBtn').style.display = 'none';
+      document.getElementById('nextRoundBtn').innerHTML = 'Next Round \u2192';
+      document.getElementById('nextRoundBtn').onclick = () => tryNextRound();
+    }
   }
 });
 
@@ -1449,11 +1857,18 @@ function updateLobby(roomState) {
   setInviteUi(roomState.code);
   document.getElementById('pcValue').textContent = roomState.playerCount;
   playerCount = roomState.playerCount;
+  discussionSeconds = roomState.discussionSeconds || discussionSeconds || 60;
   document.getElementById('pcDec').disabled = playerCount <= 3;
   document.getElementById('pcInc').disabled = playerCount >= 10;
   document.getElementById('hostControls').style.display = isHost ? 'block' : 'none';
   document.getElementById('startBtn').style.display = isHost ? 'block' : 'none';
   document.getElementById('waitingText').style.display = !isHost ? 'block' : 'none';
+  if (isHost) {
+    const r = document.getElementById('discussionRange');
+    const v = document.getElementById('discussionValue');
+    r.value = discussionSeconds;
+    v.textContent = `${discussionSeconds}s`;
+  }
   if (isHost) {
     const needed = 3 - roomState.players.length;
     document.getElementById('startBtn').disabled = needed > 0;
@@ -1464,8 +1879,21 @@ function updateLobby(roomState) {
   roomState.players.forEach((p, i) => {
     const row = document.createElement('div');
     row.className = 'player-row';
-    row.innerHTML = `<span class="p-num">P${i + 1}</span><span class="p-name">${p.name}</span>${p.id === roomState.hostId ? '<span class="p-host">Host</span>' : ''}`;
+    const hostTag = p.id === roomState.hostId ? '<span class="p-host">Host</span>' : '';
+    const kickBtn = (isHost && p.id !== roomState.hostId)
+      ? `<button class="kick-btn" title="Kick player">Kick</button>`
+      : '';
+    row.innerHTML = `<span class="p-num">P${i + 1}</span><span class="p-name">${p.name}</span>${hostTag}${kickBtn}`;
     container.appendChild(row);
+
+    if (isHost && p.id !== roomState.hostId) {
+      const btn = row.querySelector('.kick-btn');
+      btn.onclick = () => {
+        const ok = confirm(`Kick ${p.name} from the room?`);
+        if (!ok) return;
+        socket.emit('kickPlayer', { playerId: p.id });
+      };
+    }
   });
 }
 
@@ -1601,6 +2029,17 @@ function renderVoteOptions(activePlayers, allClues) {
   const voteList = document.createElement('div');
   voteList.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
 
+  // Skip option (counts as a vote; if majority chooses skip, no one is eliminated)
+  const skipBtn = document.createElement('button');
+  skipBtn.className = 'vote-option skip-option';
+  skipBtn.textContent = 'Skip';
+  skipBtn.addEventListener('click', () => {
+    container.querySelectorAll('.vote-option').forEach(b => { b.style.pointerEvents = 'none'; b.classList.remove('selected'); });
+    skipBtn.classList.add('selected');
+    socket.emit('submitVote', { targetId: 'skip' });
+  });
+  voteList.appendChild(skipBtn);
+
   const others = activePlayers.filter(p => p.id !== socket.id);
   others.forEach(p => {
     const btn = document.createElement('button');
@@ -1609,8 +2048,7 @@ function renderVoteOptions(activePlayers, allClues) {
     btn.addEventListener('click', () => {
       container.querySelectorAll('.vote-option').forEach(b => { b.style.pointerEvents = 'none'; b.classList.remove('selected'); });
       btn.classList.add('selected');
-      const targetIdx = activePlayers.findIndex(ap => ap.id === p.id);
-      socket.emit('submitVote', { targetIdx });
+      socket.emit('submitVote', { targetId: p.id });
     });
     voteList.appendChild(btn);
   });
