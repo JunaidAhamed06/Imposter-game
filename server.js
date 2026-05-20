@@ -54,6 +54,17 @@ const CATEGORY_ICONS = {
 
 const rooms = new Map();
 
+function normalizeName(raw) {
+  return String(raw || '').trim().replace(/\s+/g, ' ');
+}
+
+function isValidPlayerName(name) {
+  // Letters and spaces only; must contain at least one letter.
+  if (!name || name.length > 20) return false;
+  if (!/^[A-Za-z ]+$/.test(name)) return false;
+  return /[A-Za-z]/.test(name);
+}
+
 function generateCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code;
@@ -186,13 +197,20 @@ io.on('connection', (socket) => {
   console.log('Player connected:', socket.id);
 
   socket.on('createRoom', ({ name, playerCount }) => {
-    const code = createRoom(socket.id, name, playerCount);
+    const cleanName = normalizeName(name);
+    if (!isValidPlayerName(cleanName)) {
+      io.to(socket.id).emit('joinError', 'Name can contain letters and spaces only');
+      return;
+    }
+    const code = createRoom(socket.id, cleanName, playerCount);
     socket.join('room:' + code);
     const room = getRoom(code);
     io.to(socket.id).emit('roomCreated', { code, roomState: { ...getRoomState(room), isHost: true } });
   });
 
   socket.on('joinRoom', ({ name, code }) => {
+    const cleanName = normalizeName(name);
+    if (!isValidPlayerName(cleanName)) { io.to(socket.id).emit('joinError', 'Name can contain letters and spaces only'); return; }
     const roomCode = code.toUpperCase();
     const room = getRoom(roomCode);
     if (!room) { io.to(socket.id).emit('joinError', 'Room not found'); return; }
@@ -200,7 +218,7 @@ io.on('connection', (socket) => {
     if (room.players.find(p => p.id === socket.id)) { io.to(socket.id).emit('joinError', 'Already in room'); return; }
     if (room.players.length >= room.playerCount) { io.to(socket.id).emit('joinError', 'Room is full'); return; }
 
-    room.players.push({ id: socket.id, name, clue: null, vote: -1, eliminated: false, spectator: false, categoryVote: null });
+    room.players.push({ id: socket.id, name: cleanName, clue: null, vote: -1, eliminated: false, spectator: false, categoryVote: null });
     socket.join('room:' + room.code);
     broadcastToRoom(room, 'roomUpdate', getRoomState(room));
     io.to(socket.id).emit('roomJoined', { code: room.code, roomState: getRoomState(room) });

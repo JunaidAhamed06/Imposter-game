@@ -336,6 +336,7 @@ canvas#particles {
 }
 
 .btn-group { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+.btn-group.compact { margin-top: 12px; }
 
 .divider {
   display: flex; align-items: center; gap: 14px; margin: 20px 0;
@@ -808,12 +809,16 @@ canvas#particles {
         <div class="logo-sub">Find the Spy</div>
       </div>
       <div id="connectError" style="margin-bottom:12px;"></div>
-      <div class="input" style="font-weight:600;margin-bottom:12px;font-size:0.85rem;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.5);">Your Name</div>
       <input type="text" class="input" id="nameInput" placeholder="Enter your name" maxlength="20" style="margin-bottom:4px;">
+      <div id="nameValidationMsg" style="display:none;margin:6px 0 2px;color:#ff6b6b;font-size:0.75rem;font-weight:700;text-align:center;">
+        Name can contain letters and spaces only
+      </div>
+      <div class="btn-group compact" id="createGroup">
+        <button class="btn btn-accent" id="createRoomBtn">&#x1F3D6;&#xFE0F; Create Room</button>
+      </div>
       <div class="divider" id="joinDivider">join existing room</div>
       <input type="text" class="input code-input" id="codeInput" placeholder="ROOM CODE" maxlength="4">
-      <div class="btn-group">
-        <button class="btn btn-accent" id="createRoomBtn">&#x1F3D6;&#xFE0F; Create Room</button>
+      <div class="btn-group compact">
         <button class="btn btn-primary" id="joinRoomBtn">Join Room</button>
       </div>
     </div>
@@ -1044,6 +1049,34 @@ function showError(msg) {
   setTimeout(() => el.innerHTML = '', 3000);
 }
 
+function normalizeName(raw) {
+  return raw.trim().replace(/\s+/g, ' ');
+}
+
+function isValidPlayerName(name) {
+  // Letters and spaces only
+  return /^[A-Za-z ]+$/.test(name);
+}
+
+function updateConnectButtons() {
+  const nameRaw = document.getElementById('nameInput').value;
+  const name = normalizeName(nameRaw);
+  const hasAnyTyped = nameRaw.trim().length > 0;
+  const validName = name.length > 0 && isValidPlayerName(name);
+
+  const createBtn = document.getElementById('createRoomBtn');
+  const joinBtn = document.getElementById('joinRoomBtn');
+  const code = document.getElementById('codeInput').value.trim();
+  const nameMsg = document.getElementById('nameValidationMsg');
+
+  nameMsg.style.display = (!validName && hasAnyTyped) ? 'block' : 'none';
+  createBtn.disabled = !validName;
+  joinBtn.disabled = !validName || !code;
+}
+
+document.getElementById('nameInput').addEventListener('input', updateConnectButtons);
+document.getElementById('codeInput').addEventListener('input', updateConnectButtons);
+
 document.getElementById('nameInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') {
     (inviteCodeFromUrl ? document.getElementById('joinRoomBtn') : document.getElementById('createRoomBtn')).click();
@@ -1056,22 +1089,27 @@ if (inviteCodeFromUrl) {
   document.getElementById('codeInput').value = inviteCodeFromUrl;
   document.getElementById('joinDivider').textContent = `invite link: ${inviteCodeFromUrl}`;
   // Joining is the common case when arriving via a link.
-  document.getElementById('createRoomBtn').style.display = 'none';
+  document.getElementById('createGroup').style.display = 'none';
 }
 
 document.getElementById('createRoomBtn').addEventListener('click', () => {
-  myName = document.getElementById('nameInput').value.trim();
+  myName = normalizeName(document.getElementById('nameInput').value);
   if (!myName) { showError('Please enter your name'); return; }
+  if (!isValidPlayerName(myName)) { showError('Name can contain letters and spaces only'); return; }
   socket.emit('createRoom', { name: myName, playerCount });
 });
 
 document.getElementById('joinRoomBtn').addEventListener('click', () => {
-  myName = document.getElementById('nameInput').value.trim();
+  myName = normalizeName(document.getElementById('nameInput').value);
   const code = document.getElementById('codeInput').value.trim();
   if (!myName) { showError('Please enter your name'); return; }
+  if (!isValidPlayerName(myName)) { showError('Name can contain letters and spaces only'); return; }
   if (!code) { showError('Please enter a room code'); return; }
   socket.emit('joinRoom', { name: myName, code });
 });
+
+// Initial state
+updateConnectButtons();
 
 document.getElementById('pcDec').addEventListener('click', () => { playerCount = Math.max(3, playerCount - 1); socket.emit('updatePlayerCount', { playerCount }); });
 document.getElementById('pcInc').addEventListener('click', () => { playerCount = Math.min(10, playerCount + 1); socket.emit('updatePlayerCount', { playerCount }); });
