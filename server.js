@@ -9,6 +9,15 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Deep-link support: allow sharing rooms via a friendly URL like /room/ABCD
+// We still serve the same SPA (public/index.html); the client reads the room code from the URL.
+app.get('/room/:code', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Convenience: /room -> home
+app.get('/room', (req, res) => res.redirect('/'));
+
 const CATEGORIES = {
   Movies: [
     "Titanic", "Avatar", "Inception", "Gladiator", "Frozen",

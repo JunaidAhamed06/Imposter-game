@@ -370,6 +370,54 @@ canvas#particles {
   animation: slideUp 0.3s ease-out;
 }
 
+/* Toast (for copy-link feedback) */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%) translateY(10px);
+  background: rgba(34, 197, 94, 0.18);
+  border: 1.5px solid rgba(34, 197, 94, 0.55);
+  color: #9cffc0;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 9999;
+  max-width: calc(100vw - 40px);
+  text-align: center;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.invite-area {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.invite-label {
+  text-align: center;
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.invite-link {
+  text-align: center;
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.7);
+  word-break: break-all;
+  margin-bottom: 10px;
+  user-select: all;
+}
+
 .connection-card { text-align: center; padding: 32px 24px; }
 .connection-card .input { margin-bottom: 12px; text-align: center; font-size: 1rem; }
 .code-input { letter-spacing: 4px; font-size: 1.1rem; font-weight: 700; text-transform: uppercase; }
@@ -762,7 +810,7 @@ canvas#particles {
       <div id="connectError" style="margin-bottom:12px;"></div>
       <div class="input" style="font-weight:600;margin-bottom:12px;font-size:0.85rem;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.5);">Your Name</div>
       <input type="text" class="input" id="nameInput" placeholder="Enter your name" maxlength="20" style="margin-bottom:4px;">
-      <div class="divider">join existing room</div>
+      <div class="divider" id="joinDivider">join existing room</div>
       <input type="text" class="input code-input" id="codeInput" placeholder="ROOM CODE" maxlength="4">
       <div class="btn-group">
         <button class="btn btn-accent" id="createRoomBtn">&#x1F3D6;&#xFE0F; Create Room</button>
@@ -776,6 +824,11 @@ canvas#particles {
       <div class="room-code-display">
         <div class="room-code-label">Room Code</div>
         <div class="room-code-value" id="lobbyCode">----</div>
+      </div>
+      <div class="invite-area">
+        <div class="invite-label">Invite Link</div>
+        <div class="invite-link" id="inviteLinkText">—</div>
+        <button class="btn btn-primary" id="copyInviteBtn">&#x1F517; Copy Invite Link</button>
       </div>
       <div id="hostControls" style="display:none;">
         <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.35);letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-bottom:12px;">Player Limit</div>
@@ -910,12 +963,74 @@ canvas#particles {
   </div>
 </div>
 
+<div class="toast" id="toast"></div>
+
 <script>
 const socket = io();
 
 let myName = '';
 let isHost = false;
 let playerCount = 5;
+
+const invitePathMatch = window.location.pathname.match(/^\/room\/([A-Za-z0-9]+)\/?$/);
+const inviteCodeFromUrl = invitePathMatch ? invitePathMatch[1].toUpperCase() : null;
+
+function getInviteLink(code) {
+  return `${window.location.origin}/room/${encodeURIComponent(code)}`;
+}
+
+function setUrlForRoom(code) {
+  const target = `/room/${code}`;
+  if (window.location.pathname !== target) {
+    window.history.replaceState({}, '', target);
+  }
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+async function copyText(text) {
+  // Clipboard API (works on https and on localhost)
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (e) {}
+
+  // Fallback
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function copyInviteLink(link) {
+  const ok = await copyText(link);
+  showToast(ok ? 'Invite link copied!' : 'Could not copy link');
+}
+
+function setInviteUi(code) {
+  const link = getInviteLink(code);
+  document.getElementById('inviteLinkText').textContent = link;
+  document.getElementById('copyInviteBtn').onclick = () => copyInviteLink(link);
+  document.getElementById('inviteLinkText').onclick = () => copyInviteLink(link);
+}
 
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -928,8 +1043,20 @@ function showError(msg) {
   setTimeout(() => el.innerHTML = '', 3000);
 }
 
-document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('createRoomBtn').click(); });
+document.getElementById('nameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    (inviteCodeFromUrl ? document.getElementById('joinRoomBtn') : document.getElementById('createRoomBtn')).click();
+  }
+});
 document.getElementById('codeInput').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('joinRoomBtn').click(); });
+
+// If a user opened an invite link (e.g. /room/ABCD), pre-fill the code so they don't need to type it.
+if (inviteCodeFromUrl) {
+  document.getElementById('codeInput').value = inviteCodeFromUrl;
+  document.getElementById('joinDivider').textContent = `invite link: ${inviteCodeFromUrl}`;
+  // Joining is the common case when arriving via a link.
+  document.getElementById('createRoomBtn').style.display = 'none';
+}
 
 document.getElementById('createRoomBtn').addEventListener('click', () => {
   myName = document.getElementById('nameInput').value.trim();
@@ -966,8 +1093,8 @@ document.getElementById('nextRoundBtn').addEventListener('click', () => { socket
 document.getElementById('viewResultsBtn').addEventListener('click', () => { socket.emit('nextRound'); });
 document.getElementById('playAgainBtn').addEventListener('click', () => { socket.emit('playAgain'); });
 
-socket.on('roomCreated', ({ code, roomState }) => { isHost = true; playerCount = roomState.playerCount; enterLobby(roomState); });
-socket.on('roomJoined', ({ code, roomState }) => { isHost = false; enterLobby(roomState); });
+socket.on('roomCreated', ({ code, roomState }) => { isHost = true; playerCount = roomState.playerCount; setUrlForRoom(roomState.code); enterLobby(roomState); });
+socket.on('roomJoined', ({ code, roomState }) => { isHost = false; setUrlForRoom(roomState.code); enterLobby(roomState); });
 socket.on('joinError', msg => showError(msg));
 socket.on('roomUpdate', roomState => { playerCount = roomState.playerCount; updateLobby(roomState); });
 
@@ -1205,6 +1332,7 @@ function enterLobby(roomState) {
   document.getElementById('roundBadge').style.display = 'none';
   showProfileBadge();
   showScreen('lobbyScreen');
+  setInviteUi(roomState.code);
   updateLobby(roomState);
 }
 
@@ -1248,6 +1376,7 @@ function hideWordBadge() {
 
 function updateLobby(roomState) {
   document.getElementById('lobbyCode').textContent = roomState.code;
+  setInviteUi(roomState.code);
   document.getElementById('pcValue').textContent = roomState.playerCount;
   playerCount = roomState.playerCount;
   document.getElementById('pcDec').disabled = playerCount <= 3;
