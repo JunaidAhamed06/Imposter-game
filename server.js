@@ -72,7 +72,7 @@ function createRoom(hostId, hostName, playerCount) {
   rooms.set(code, {
     code,
     hostId,
-    players: [{ id: hostId, name: hostName, clue: null, vote: -1, eliminated: false, categoryVote: null }],
+    players: [{ id: hostId, name: hostName, clue: null, vote: -1, eliminated: false, spectator: false, categoryVote: null }],
     playerCount: Math.max(3, Math.min(10, playerCount)),
     word: null,
     category: null,
@@ -200,7 +200,7 @@ io.on('connection', (socket) => {
     if (room.players.find(p => p.id === socket.id)) { io.to(socket.id).emit('joinError', 'Already in room'); return; }
     if (room.players.length >= room.playerCount) { io.to(socket.id).emit('joinError', 'Room is full'); return; }
 
-    room.players.push({ id: socket.id, name, clue: null, vote: -1, eliminated: false, categoryVote: null });
+    room.players.push({ id: socket.id, name, clue: null, vote: -1, eliminated: false, spectator: false, categoryVote: null });
     socket.join('room:' + room.code);
     broadcastToRoom(room, 'roomUpdate', getRoomState(room));
     io.to(socket.id).emit('roomJoined', { code: room.code, roomState: getRoomState(room) });
@@ -236,7 +236,7 @@ io.on('connection', (socket) => {
     const room = findPlayerRoom(socket.id);
     if (!room || room.phase !== 'categoryVote') return;
     const player = room.players.find(p => p.id === socket.id);
-    if (!player) return;
+    if (!player || player.eliminated) return;
 
     player.categoryVote = category;
 
@@ -322,6 +322,8 @@ io.on('connection', (socket) => {
   socket.on('revealReady', () => {
     const room = findPlayerRoom(socket.id);
     if (!room || room.phase !== 'reveal') return;
+    const player = room.players.find(p => p.id === socket.id);
+    if (!player || player.eliminated) return;
     room.revealReady[socket.id] = true;
 
     const allReady = room.players.every(p => p.eliminated || room.revealReady[p.id]);
@@ -343,6 +345,8 @@ io.on('connection', (socket) => {
   socket.on('submitClue', ({ clue }) => {
     const room = findPlayerRoom(socket.id);
     if (!room || room.phase !== 'clue') return;
+    const player = room.players.find(p => p.id === socket.id);
+    if (!player || player.eliminated) return;
     if (socket.id !== room.currentTurnPlayerId) return;
 
     handleTurnEnd(room, socket.id, clue.trim());
@@ -353,7 +357,7 @@ io.on('connection', (socket) => {
     if (!room || room.phase !== 'vote') return;
 
     const player = room.players.find(p => p.id === socket.id);
-    if (!player) return;
+    if (!player || player.eliminated) return;
     player.vote = targetIdx;
 
     const allVoted = room.players.every(p => p.eliminated || p.vote !== -1);
@@ -392,6 +396,8 @@ io.on('connection', (socket) => {
   socket.on('nextRound', () => {
     const room = findPlayerRoom(socket.id);
     if (!room) return;
+    const player = room.players.find(p => p.id === socket.id);
+    if (!player || player.eliminated) return;
 
     room.round++;
     room.phase = 'categoryVote';
@@ -415,19 +421,24 @@ io.on('connection', (socket) => {
   socket.on('revealAfterCategory', () => {
     const room = findPlayerRoom(socket.id);
     if (!room || room.phase !== 'categoryVote') return;
+    const player = room.players.find(p => p.id === socket.id);
+    if (!player || player.eliminated) return;
 
     assignImposter(room);
     room.phase = 'reveal';
 
     room.players.forEach(p => {
       const isImposter = p.id === room.imposterSocketId;
+      const isSpectator = !!p.spectator && p.eliminated;
       io.to(p.id).emit('gameStarted', {
         // Never send the secret word to the imposter client.
-        word: isImposter ? null : room.word,
+        // Also never send the secret word to spectators (voted-out crew).
+        word: (isImposter || isSpectator) ? null : room.word,
         isImposter,
+        isSpectator,
         category: room.category,
         round: room.round,
-        players: room.players.map((pp, i) => ({ id: pp.id, name: pp.name, eliminated: pp.eliminated }))
+        players: room.players.map((pp, i) => ({ id: pp.id, name: pp.name, eliminated: pp.eliminated, spectator: !!pp.spectator }))
       });
     });
   });
@@ -438,7 +449,7 @@ io.on('connection', (socket) => {
 
     room.round = 0;
     room.phase = 'lobby';
-    room.players.forEach(p => { p.clue = null; p.vote = -1; p.eliminated = false; p.categoryVote = null; });
+    room.players.forEach(p => { p.clue = null; p.vote = -1; p.eliminated = false; p.spectator = false; p.categoryVote = null; });
     room.clues = [];
     room.eliminationHistory = [];
     room.usedWords.clear();
@@ -467,6 +478,7 @@ io.on('connection', (socket) => {
           }
         } else {
           room.players[playerIdx].eliminated = true;
+          room.players[playerIdx].spectator = false;
           const imposterStillPlaying = room.players.some(p => !p.eliminated && p.id === room.imposterSocketId);
           if (!imposterStillPlaying) {
             room.phase = 'gameOver';
@@ -525,6 +537,8 @@ function tallyVotes(room) {
   eliminatedPlayer.eliminated = true;
 
   const isImposter = eliminatedId === room.imposterSocketId;
+  // Only voted-out crew become spectators for subsequent rounds.
+  eliminatedPlayer.spectator = !isImposter;
 
   room.eliminationHistory.push({
     round: room.round,
@@ -554,6 +568,7 @@ function tallyVotes(room) {
   const imposterPlayer = room.players.find(p => p.id === room.imposterSocketId);
 
   const payload = {
+    eliminatedId,
     eliminatedName: eliminatedPlayer.name,
     isImposter,
     voteCounts,

@@ -783,7 +783,7 @@ canvas#particles {
   <div class="profile-avatar" id="profileAvatar">?</div>
   <div class="profile-info">
     <div class="profile-name" id="profileName">—</div>
-    <div class="profile-label">Playing</div>
+    <div class="profile-label" id="profileModeLabel">Playing</div>
   </div>
 </div>
 
@@ -971,6 +971,7 @@ const socket = io();
 let myName = '';
 let isHost = false;
 let playerCount = 5;
+window._myIsSpectator = false;
 
 const invitePathMatch = window.location.pathname.match(/^\/room\/([A-Za-z0-9]+)\/?$/);
 const inviteCodeFromUrl = invitePathMatch ? invitePathMatch[1].toUpperCase() : null;
@@ -1089,8 +1090,16 @@ document.getElementById('revealToggle').addEventListener('click', () => {
   }
 });
 
-document.getElementById('nextRoundBtn').addEventListener('click', () => { socket.emit('nextRound'); });
-document.getElementById('viewResultsBtn').addEventListener('click', () => { socket.emit('nextRound'); });
+function tryNextRound() {
+  if (window._myIsSpectator) {
+    showToast('You are spectating — you cannot play this round');
+    return;
+  }
+  socket.emit('nextRound');
+}
+
+document.getElementById('nextRoundBtn').addEventListener('click', () => { tryNextRound(); });
+document.getElementById('viewResultsBtn').addEventListener('click', () => { tryNextRound(); });
 document.getElementById('playAgainBtn').addEventListener('click', () => { socket.emit('playAgain'); });
 
 socket.on('roomCreated', ({ code, roomState }) => { isHost = true; playerCount = roomState.playerCount; setUrlForRoom(roomState.code); enterLobby(roomState); });
@@ -1113,16 +1122,22 @@ socket.on('categoryResult', data => {
 });
 
 document.getElementById('catRevealBtn').addEventListener('click', () => {
+  if (window._myIsSpectator) {
+    showToast('Spectating — waiting for active players');
+    return;
+  }
   socket.emit('revealAfterCategory');
 });
 
 socket.on('gameStarted', data => {
   window._myWord = data.word;
   window._myIsImposter = data.isImposter;
+  window._myIsSpectator = !!data.isSpectator;
   window._myCategory = data.category;
   document.getElementById('phaseLabel').textContent = `Round ${data.round}`;
   document.getElementById('roundBadge').style.display = 'flex';
   document.getElementById('roundBadge').textContent = `Round ${data.round}`;
+  setProfileModeLabel();
   setupReveal();
   showScreen('revealScreen');
 });
@@ -1138,7 +1153,8 @@ let timerInterval = null;
 
 socket.on('turnChange', data => {
   document.getElementById('phaseLabel').textContent = 'Clue Phase';
-  showWordBadge(window._myWord, window._myIsImposter);
+  if (window._myIsSpectator) hideWordBadge();
+  else showWordBadge(window._myWord, window._myIsImposter);
   showScreen('clueScreen');
 
   const isMyTurn = data.currentPlayerId === socket.id;
@@ -1255,6 +1271,14 @@ socket.on('voteResult', data => {
   const roleEl = document.getElementById('resultRole');
   roleEl.textContent = data.isImposter ? 'IMPOSTER' : 'CREW MEMBER';
   roleEl.className = `result-role ${data.isImposter ? 'imposter' : 'crew'}`;
+
+  // If *I* was voted out (and I'm not the imposter), I become a spectator from now on.
+  if (!data.isImposter && data.eliminatedId && data.eliminatedId === socket.id) {
+    window._myIsSpectator = true;
+    setProfileModeLabel();
+    showToast('You were voted out — spectating only');
+  }
+
   const tallyEl = document.getElementById('voteTally');
   tallyEl.innerHTML = '';
   data.voteCounts.forEach(vc => {
@@ -1313,7 +1337,7 @@ socket.on('voteResult', data => {
     document.getElementById('nextRoundBtn').style.display = 'block';
     document.getElementById('viewResultsBtn').style.display = 'none';
     document.getElementById('nextRoundBtn').innerHTML = 'Next Round \u2192';
-    document.getElementById('nextRoundBtn').onclick = () => socket.emit('nextRound');
+    document.getElementById('nextRoundBtn').onclick = () => tryNextRound();
   }
 });
 
@@ -1326,11 +1350,13 @@ socket.on('playAgain', data => { enterLobby(data.roomState); });
 
 function enterLobby(roomState) {
   isHost = roomState.isHost;
+  window._myIsSpectator = false;
   document.getElementById('statusPill').style.display = 'flex';
   document.getElementById('roomCodeDisplay').textContent = roomState.code;
   document.getElementById('phaseLabel').textContent = 'Lobby';
   document.getElementById('roundBadge').style.display = 'none';
   showProfileBadge();
+  setProfileModeLabel();
   showScreen('lobbyScreen');
   setInviteUi(roomState.code);
   updateLobby(roomState);
@@ -1342,6 +1368,12 @@ function showProfileBadge() {
   document.getElementById('profileAvatar').textContent = initial;
   document.getElementById('profileName').textContent = myName;
   badge.style.display = 'flex';
+}
+
+function setProfileModeLabel() {
+  const label = document.getElementById('profileModeLabel');
+  if (!label) return;
+  label.textContent = window._myIsSpectator ? 'Spectating' : 'Playing';
 }
 
 function showWordBadge(word, isImposter) {
@@ -1408,6 +1440,13 @@ function renderCategoryVote(categories) {
   document.getElementById('catVoteSub').textContent = 'Vote for the word category';
   document.getElementById('catVoteWaiting').style.display = 'none';
 
+  if (window._myIsSpectator) {
+    document.getElementById('catVoteSub').textContent = 'You are spectating this round';
+    document.getElementById('catVoteWaiting').style.display = 'block';
+    document.getElementById('catVoteWaiting').textContent = 'Waiting for active players...';
+    return;
+  }
+
   categories.forEach(cat => {
     const card = document.createElement('div');
     card.className = 'cat-card';
@@ -1466,6 +1505,18 @@ function setupReveal() {
   document.getElementById('revealHint').textContent = 'Tap to reveal your role. Keep it secret!';
   document.getElementById('revealWaiting').style.display = 'none';
   const toggle = document.getElementById('revealToggle');
+
+  if (window._myIsSpectator) {
+    document.getElementById('revealPlayerName').textContent = `${catLabel}SPECTATOR`;
+    document.getElementById('revealHint').textContent = 'You were voted out — you can spectate but cannot play.';
+    toggle.style.display = 'none';
+    document.getElementById('revealWaiting').style.display = 'block';
+    document.getElementById('revealWaiting').textContent = 'Waiting for active players...';
+    return;
+  } else {
+    toggle.style.display = '';
+  }
+
   toggle.onclick = function() {
     toggle.classList.remove('hidden');
     toggle.classList.add('visible');
@@ -1499,6 +1550,14 @@ function renderVoteOptions(activePlayers, allClues) {
       cluesSection.appendChild(el);
     });
     container.appendChild(cluesSection);
+  }
+
+  if (window._myIsSpectator) {
+    const msg = document.createElement('div');
+    msg.style.cssText = 'padding:12px;text-align:center;color:rgba(255,255,255,0.6);font-weight:700;';
+    msg.textContent = 'Spectating — you cannot vote';
+    container.appendChild(msg);
+    return;
   }
 
   const voteList = document.createElement('div');
