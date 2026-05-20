@@ -74,7 +74,11 @@ function createRoom(hostId, hostName, playerCount) {
     eliminationHistory: [],
     roundWords: [],
     usedWords: new Set(),
-    revealReady: {}
+    revealReady: {},
+    // When the imposter is voted out, they get ONE chance to guess the word.
+    // { imposterId: string, attempted: boolean }
+    imposterGuess: null,
+    lastVotePayload: null
   });
   return code;
 }
@@ -349,6 +353,33 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('submitImposterGuess', ({ guess }) => {
+    const room = findPlayerRoom(socket.id);
+    if (!room || room.phase !== 'imposterGuess' || !room.imposterGuess) return;
+    if (socket.id !== room.imposterGuess.imposterId) return;
+    if (room.imposterGuess.attempted) return;
+
+    room.imposterGuess.attempted = true;
+
+    const normalize = (s) => (s || '').toString().trim().toLowerCase();
+    const isCorrect = normalize(guess) === normalize(room.word);
+
+    room.phase = 'gameOver';
+    room.gameResult = isCorrect ? 'imposter' : 'crew';
+
+    const finalPayload = {
+      ...(room.lastVotePayload || {}),
+      phase: room.phase,
+      gameResult: room.gameResult
+    };
+
+    broadcastToRoom(room, 'imposterGuessResolved', {
+      ...finalPayload,
+      guess: (guess || '').toString().trim(),
+      isCorrect
+    });
+  });
+
   socket.on('nextRound', () => {
     const room = findPlayerRoom(socket.id);
     if (!room) return;
@@ -359,6 +390,8 @@ io.on('connection', (socket) => {
     room.clues = [];
     room.currentTurnPlayerId = null;
     room.players.forEach(p => { p.clue = null; p.vote = -1; p.categoryVote = null; });
+    room.imposterGuess = null;
+    room.lastVotePayload = null;
 
     broadcastToRoom(room, 'startCategoryVote', {
       categories: Object.keys(CATEGORIES).map(cat => ({
@@ -380,7 +413,8 @@ io.on('connection', (socket) => {
     room.players.forEach(p => {
       const isImposter = p.id === room.imposterSocketId;
       io.to(p.id).emit('gameStarted', {
-        word: room.word,
+        // Never send the secret word to the imposter client.
+        word: isImposter ? null : room.word,
         isImposter,
         category: room.category,
         round: room.round,
@@ -403,6 +437,8 @@ io.on('connection', (socket) => {
     room.playerCount = room.players.length;
     room.imposterSocketId = null;
     room.category = null;
+    room.imposterGuess = null;
+    room.lastVotePayload = null;
 
     broadcastToRoom(room, 'playAgain', { roomState: { ...getRoomState(room), isHost: room.hostId === socket.id } });
   });
@@ -488,8 +524,10 @@ function tallyVotes(room) {
   });
 
   if (isImposter) {
-    room.phase = 'gameOver';
-    room.gameResult = 'crew';
+    // Imposter gets one last chance to guess the word.
+    room.phase = 'imposterGuess';
+    room.gameResult = null;
+    room.imposterGuess = { imposterId: eliminatedId, attempted: false };
   } else {
     const crewLeft = room.players.filter(p => !p.eliminated && p.id !== room.imposterSocketId).length;
     if (crewLeft === 0) {
@@ -506,7 +544,7 @@ function tallyVotes(room) {
 
   const imposterPlayer = room.players.find(p => p.id === room.imposterSocketId);
 
-  broadcastToRoom(room, 'voteResult', {
+  const payload = {
     eliminatedName: eliminatedPlayer.name,
     isImposter,
     voteCounts,
@@ -516,8 +554,15 @@ function tallyVotes(room) {
     imposterName: imposterPlayer?.name || 'Unknown',
     roundWords: room.roundWords,
     eliminationHistory: room.eliminationHistory,
-    category: room.category
-  });
+    category: room.category,
+    imposterGuess: room.phase === 'imposterGuess'
+      ? { imposterId: room.imposterGuess?.imposterId }
+      : null
+  };
+
+  room.lastVotePayload = payload;
+
+  broadcastToRoom(room, 'voteResult', payload);
 }
 
 const PORT = process.env.PORT || 3000;

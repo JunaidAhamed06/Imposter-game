@@ -544,6 +544,30 @@ canvas#particles {
 .vote-tally-row.eliminated .vote-tally-count { color: var(--sunset-coral); font-weight: 800; }
 .vote-tally-count { font-weight: 700; color: rgba(255,255,255,0.7); }
 
+.imposter-guess {
+  margin-top: 14px;
+  padding: 16px;
+  background: rgba(255, 140, 66, 0.06);
+  border: 1px solid rgba(255, 140, 66, 0.15);
+  border-radius: 16px;
+  text-align: center;
+}
+.imposter-guess-title {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.45);
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+.imposter-guess-prompt {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.75);
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+.imposter-guess-actions { display: flex; flex-direction: column; gap: 10px; }
+
 .game-over-content { text-align: center; padding: 20px 0; }
 .game-over-icon { font-size: 4rem; margin-bottom: 16px; }
 .game-over-title { font-size: 1.8rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 8px; }
@@ -850,6 +874,16 @@ canvas#particles {
         <div class="result-votes-title">Vote Tally</div>
         <div id="voteTally"></div>
       </div>
+
+      <div class="imposter-guess" id="imposterGuessSection" style="display:none;">
+        <div class="imposter-guess-title">Last Chance</div>
+        <div class="imposter-guess-prompt" id="imposterGuessPrompt">—</div>
+        <div class="imposter-guess-actions">
+          <input type="text" class="input" id="imposterGuessInput" placeholder="Type the secret word..." maxlength="40" style="text-align:center;display:none;">
+          <button class="btn btn-gold" id="imposterGuessBtn" style="display:none;">Submit Guess</button>
+        </div>
+      </div>
+
       <div class="btn-group">
         <button class="btn btn-primary" id="nextRoundBtn" style="display:none;">Next Round &#x2192;</button>
         <button class="btn btn-gold" id="viewResultsBtn" style="display:none;">View Results</button>
@@ -1076,6 +1110,7 @@ socket.on('phaseChange', data => {
   switch (data.phase) {
     case 'vote':
       clearInterval(timerInterval);
+      hideWordBadge();
       document.getElementById('phaseLabel').textContent = 'Voting';
       showScreen('voteScreen');
       renderVoteOptions(data.activePlayers, data.allClues);
@@ -1084,6 +1119,7 @@ socket.on('phaseChange', data => {
 });
 
 socket.on('voteResult', data => {
+  hideWordBadge();
   document.getElementById('phaseLabel').textContent = 'Result';
   showScreen('resultScreen');
   document.getElementById('resultIcon').textContent = data.isImposter ? '\uD83C\uDFAF' : '\uD83D\uDEAA';
@@ -1100,17 +1136,63 @@ socket.on('voteResult', data => {
     row.innerHTML = `<span class="vote-tally-name">${vc.name}</span><span class="vote-tally-count">${vc.votes} vote${vc.votes !== 1 ? 's' : ''}</span>`;
     tallyEl.appendChild(row);
   });
+
+  // Imposter last-chance guess section
+  const guessSection = document.getElementById('imposterGuessSection');
+  const guessPrompt = document.getElementById('imposterGuessPrompt');
+  const guessInput = document.getElementById('imposterGuessInput');
+  const guessBtn = document.getElementById('imposterGuessBtn');
+
+  guessSection.style.display = data.phase === 'imposterGuess' ? 'block' : 'none';
+  guessInput.style.display = 'none';
+  guessBtn.style.display = 'none';
+  guessInput.value = '';
+  guessInput.disabled = false;
+  guessBtn.disabled = false;
+  guessBtn.textContent = 'Submit Guess';
+
+  if (data.phase === 'imposterGuess' && data.imposterGuess && data.imposterGuess.imposterId) {
+    const isMyGuess = socket.id === data.imposterGuess.imposterId;
+    if (isMyGuess) {
+      guessPrompt.textContent = 'You were caught — but you get ONE chance to guess the secret word.';
+      guessInput.style.display = 'block';
+      guessBtn.style.display = 'inline-flex';
+      setTimeout(() => guessInput.focus(), 50);
+      guessBtn.onclick = () => {
+        const guess = guessInput.value.trim();
+        if (!guess) return;
+        guessBtn.disabled = true;
+        guessInput.disabled = true;
+        guessBtn.textContent = 'Submitting...';
+        socket.emit('submitImposterGuess', { guess });
+      };
+      guessInput.onkeydown = (e) => {
+        if (e.key === 'Enter') guessBtn.click();
+      };
+    } else {
+      guessPrompt.textContent = 'Waiting for the imposter to make their final guess...';
+    }
+  }
+
   if (data.phase === 'gameOver') {
     document.getElementById('nextRoundBtn').style.display = 'none';
     document.getElementById('viewResultsBtn').style.display = 'block';
     document.getElementById('viewResultsBtn').textContent = 'View Results';
     document.getElementById('viewResultsBtn').onclick = () => showGameOver(data);
+  } else if (data.phase === 'imposterGuess') {
+    document.getElementById('nextRoundBtn').style.display = 'none';
+    document.getElementById('viewResultsBtn').style.display = 'none';
   } else {
     document.getElementById('nextRoundBtn').style.display = 'block';
     document.getElementById('viewResultsBtn').style.display = 'none';
     document.getElementById('nextRoundBtn').innerHTML = 'Next Round \u2192';
     document.getElementById('nextRoundBtn').onclick = () => socket.emit('nextRound');
   }
+});
+
+socket.on('imposterGuessResolved', data => {
+  hideWordBadge();
+  showGameOver(data);
 });
 
 socket.on('playAgain', data => { enterLobby(data.roomState); });
@@ -1317,7 +1399,13 @@ function showGameOver(data) {
   document.getElementById('gameOverIcon').textContent = crewWins ? '\uD83C\uDF89' : '\uD83D\uDD75\uFE0F';
   document.getElementById('gameOverTitle').textContent = crewWins ? 'Crew Wins!' : 'Imposter Wins!';
   document.getElementById('gameOverTitle').className = `game-over-title ${crewWins ? 'win' : 'lose'}`;
-  document.getElementById('gameOverSub').textContent = crewWins ? 'The imposter has been caught!' : 'The imposter fooled everyone!';
+  if (data.isCorrect === true && data.gameResult === 'imposter') {
+    document.getElementById('gameOverSub').textContent = 'The imposter was caught... but guessed the word!';
+  } else if (data.isCorrect === false && data.gameResult === 'crew') {
+    document.getElementById('gameOverSub').textContent = 'The imposter was caught and failed the final guess.';
+  } else {
+    document.getElementById('gameOverSub').textContent = crewWins ? 'The imposter has been caught!' : 'The imposter fooled everyone!';
+  }
   document.getElementById('goImposterName').textContent = data.imposterName;
   const catLabel = data.category ? `${data.category} \u00B7 ` : '';
   document.getElementById('goWord').textContent = `Word: ${catLabel}${data.roundWords[data.roundWords.length - 1]}`;
